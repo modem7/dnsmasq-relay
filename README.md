@@ -2,10 +2,7 @@
 
 ![Docker Pulls](https://img.shields.io/docker/pulls/modem7/dnsmasq-relay)
 ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/modem7/dnsmasq-relay/latest)
-[![status-badge](#)](#)
-<!-- Woodpecker badge above is a placeholder - swap in
-     https://woodpecker.modem7.com/api/badges/<repo-id>/status.svg?events=push%2Cmanual
-     once this repo is registered there. -->
+[![status-badge](https://woodpecker.modem7.com/api/badges/11/status.svg?events=push%2Cmanual)](https://woodpecker.modem7.com/repos/11)
 [![Lint Dockerfile](https://github.com/modem7/dnsmasq-relay/actions/workflows/lint.yml/badge.svg)](https://github.com/modem7/dnsmasq-relay/actions/workflows/lint.yml)
 [![GitHub latest commit](https://badgen.net/github/last-commit/modem7/dnsmasq-relay)](https://GitHub.com/modem7/dnsmasq-relay/commit/)
 
