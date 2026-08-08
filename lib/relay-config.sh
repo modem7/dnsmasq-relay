@@ -48,6 +48,20 @@ ip_family() {
     esac
 }
 
+# is_valid_iface: restricts the optional third DHCP_RELAYS field to
+# characters Linux interface names actually use. This also closes off
+# the field as an injection vector: since it's later placed unquoted
+# into entrypoint.sh's argv-building loop, anything containing IFS
+# characters (space/tab) would otherwise split into a separate
+# argument there rather than staying part of the --dhcp-relay flag.
+is_valid_iface() {
+    iface="$1"
+    case "$iface" in
+        ''|*[!A-Za-z0-9._-]*) return 1 ;;
+    esac
+    return 0
+}
+
 # parse_dhcp_relays <DHCP_RELAYS value>
 # On success: prints one "--dhcp-relay=..." line per pair to stdout, returns 0.
 # On failure: prints a specific error for the first bad pair to stderr, returns 1.
@@ -74,7 +88,13 @@ parse_dhcp_relays() {
 
         case "$field_count" in
             2) iface="" ;;
-            3) iface=$(printf '%s' "$pair" | cut -d, -f3) ;;
+            3)
+                iface=$(printf '%s' "$pair" | cut -d, -f3)
+                if ! is_valid_iface "$iface"; then
+                    echo "DHCP_RELAYS pair $n: '$iface' is not a valid interface name" >&2
+                    return 1
+                fi
+                ;;
             *)
                 echo "DHCP_RELAYS pair $n: expected 2 or 3 comma-separated fields, got $field_count" >&2
                 return 1

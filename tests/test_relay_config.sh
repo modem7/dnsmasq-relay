@@ -77,6 +77,20 @@ set +e; err=$(parse_dhcp_relays "10.0.10.1" 2>&1 1>/dev/null); s=$?; set -e
 assert_status "single-field pair fails" 1 "$s"
 assert_eq "single-field pair error message" "DHCP_RELAYS pair 1: expected 2 or 3 comma-separated fields, got 1" "$err"
 
+# Regression: an iface field containing a space must be rejected, not
+# silently accepted and later split into a separate dnsmasq argument by
+# the consumer's word-splitting (see entrypoint.sh).
+set +e; err=$(parse_dhcp_relays "10.0.10.1,10.0.0.5,eth0 --user=root" 2>&1 1>/dev/null); s=$?; set -e
+assert_status "iface with embedded space fails" 1 "$s"
+assert_eq "iface with embedded space error message" "DHCP_RELAYS pair 1: 'eth0 --user=root' is not a valid interface name" "$err"
+
+set +e; err=$(parse_dhcp_relays "10.0.10.1,10.0.0.5,eth0=bad" 2>&1 1>/dev/null); s=$?; set -e
+assert_status "iface with disallowed character fails" 1 "$s"
+assert_eq "iface with disallowed character error message" "DHCP_RELAYS pair 1: 'eth0=bad' is not a valid interface name" "$err"
+
+out=$(parse_dhcp_relays "10.0.10.1,10.0.0.5,eth0.10")
+assert_eq "iface with dot (VLAN sub-interface name) is accepted" "--dhcp-relay=10.0.10.1,10.0.0.5,eth0.10" "$out"
+
 out=$(describe_relay_flag "--dhcp-relay=10.0.10.1,10.0.0.5")
 assert_eq "describe_relay_flag formats v4 summary" "Relaying: 10.0.10.1 -> 10.0.0.5 (v4)" "$out"
 

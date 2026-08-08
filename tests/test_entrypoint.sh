@@ -81,6 +81,21 @@ set -e
 assert_status "invalid DHCP_RELAYS exits 1" 1 "$s"
 assert_eq "invalid DHCP_RELAYS never reaches dnsmasq stub" "" "$out"
 
+# Regression: an iface field with an embedded space must never let
+# unrelated content reach dnsmasq's argv as a separate flag.
+set +e
+out=$(DHCP_RELAYS="10.0.10.1,10.0.0.5,eth0 --user=root" "$REPO_ROOT/entrypoint.sh" 2>/dev/null)
+s=$?
+set -e
+assert_status "iface-space injection attempt exits 1" 1 "$s"
+case "$out" in
+    *"--user=root"*)
+        fail=$((fail + 1))
+        printf 'FAIL: iface-space injection reached dnsmasq stub argv\n  actual: %s\n' "$out" >&2
+        ;;
+    *) pass=$((pass + 1)) ;;
+esac
+
 echo ""
 echo "Passed: $pass, Failed: $fail"
 [ "$fail" -eq 0 ]
