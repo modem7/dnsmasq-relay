@@ -49,6 +49,40 @@ assert_status "is_valid_ip rejects garbage" 1 "$s"
 assert_eq "ip_family v4" "v4" "$(ip_family "10.0.10.1")"
 assert_eq "ip_family v6" "v6" "$(ip_family "fd00::1")"
 
+out=$(parse_dhcp_relays "10.0.10.1,10.0.0.5")
+assert_eq "single v4 pair produces one flag" "--dhcp-relay=10.0.10.1,10.0.0.5" "$out"
+
+out=$(parse_dhcp_relays "10.0.10.1,10.0.0.5;10.0.20.1,10.0.0.5,eth0")
+expected="--dhcp-relay=10.0.10.1,10.0.0.5
+--dhcp-relay=10.0.20.1,10.0.0.5,eth0"
+assert_eq "multiple pairs each become a flag" "$expected" "$out"
+
+out=$(parse_dhcp_relays "10.0.10.1,10.0.0.5;fd00::1,fd00::5")
+expected="--dhcp-relay=10.0.10.1,10.0.0.5
+--dhcp-relay=fd00::1,fd00::5"
+assert_eq "mixed v4/v6 pairs both parse" "$expected" "$out"
+
+out=$(parse_dhcp_relays "10.0.10.1,10.0.0.5#6700")
+assert_eq "server #port suffix preserved" "--dhcp-relay=10.0.10.1,10.0.0.5#6700" "$out"
+
+set +e; err=$(parse_dhcp_relays "" 2>&1 1>/dev/null); s=$?; set -e
+assert_status "empty DHCP_RELAYS fails" 1 "$s"
+assert_eq "empty DHCP_RELAYS error message" "DHCP_RELAYS is empty" "$err"
+
+set +e; err=$(parse_dhcp_relays "10.0.x.1,10.0.0.5" 2>&1 1>/dev/null); s=$?; set -e
+assert_status "malformed local IP fails" 1 "$s"
+assert_eq "malformed local IP error message" "DHCP_RELAYS pair 1: '10.0.x.1' is not a valid IP" "$err"
+
+set +e; err=$(parse_dhcp_relays "10.0.10.1" 2>&1 1>/dev/null); s=$?; set -e
+assert_status "single-field pair fails" 1 "$s"
+assert_eq "single-field pair error message" "DHCP_RELAYS pair 1: expected 2 or 3 comma-separated fields, got 1" "$err"
+
+out=$(describe_relay_flag "--dhcp-relay=10.0.10.1,10.0.0.5")
+assert_eq "describe_relay_flag formats v4 summary" "Relaying: 10.0.10.1 -> 10.0.0.5 (v4)" "$out"
+
+out=$(describe_relay_flag "--dhcp-relay=fd00::1,fd00::5")
+assert_eq "describe_relay_flag formats v6 summary" "Relaying: fd00::1 -> fd00::5 (v6)" "$out"
+
 echo ""
 echo "Passed: $pass, Failed: $fail"
 [ "$fail" -eq 0 ]
