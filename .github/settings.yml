@@ -16,7 +16,7 @@ repository:
 
   allow_squash_merge: true
   allow_rebase_merge: true
-  allow_merge_commit: false
+  allow_merge_commit: true
 
   enable_automated_security_fixes: true
   enable_vulnerability_alerts: true
